@@ -8,8 +8,15 @@ import com.hotsse.datajpa.repository.TeamJpaRepository;
 import com.hotsse.datajpa.repository.TeamRepository;
 
 import java.util.List;
+import java.util.Set;
 
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.Rollback;
@@ -31,10 +38,37 @@ public class MemberTest {
     
     @Autowired
     private TeamJpaRepository teamJpaRepository;
+    
+    @PersistenceContext
+	private EntityManager em;
+    
+    private final String 샘플데이터_생성금지 = "샘플데이터_생성금지";
+    
+    @BeforeEach
+    void createTestData(TestInfo testInfo) throws Exception {
+    	
+    	Set<String> tags = testInfo.getTags();
+    	if(tags.contains(샘플데이터_생성금지)) return;
+    	
+    	Team teamA = new Team("teamA");
+        Team teamB = new Team("teamB");
+        teamRepository.save(teamA);
+        teamRepository.save(teamB);
+
+        Member member1 = new Member("member1", 13, teamA);
+        Member member2 = new Member("member2", 14, teamA);
+        Member member3 = new Member("member3", 15, teamB);
+        Member member4 = new Member("member4", 16, teamB);
+        memberRepository.save(member1);
+        memberRepository.save(member2);
+        memberRepository.save(member3);
+        memberRepository.save(member4);
+    }
 
     @Test
+    @Tag(샘플데이터_생성금지)
     void test() throws Exception {
-
+    	
         Team teamA = new Team("teamA");
         Team teamB = new Team("teamB");
         teamRepository.save(teamA);
@@ -51,6 +85,7 @@ public class MemberTest {
     }
     
     @Test
+    @Tag(샘플데이터_생성금지)
     void pureJpaTest() throws Exception {
     	
     	Team teamA = new Team("teamA");
@@ -76,5 +111,38 @@ public class MemberTest {
         
         System.out.println(memberJpaRepository.findAll().toString());
         System.out.println(memberJpaRepository.count());
+    }
+    
+    @Test
+    void FetchTypeLAZY일때_Np1쿼리발생_테스트() throws Exception {
+        
+    	// @BeforeEach 에서 생성한 데이터의 1차 캐싱 제거
+        em.flush();
+        em.clear();
+        
+        List<Member> members = memberRepository.findAll();
+        
+        for(Member m : members) {
+        	System.out.println("member = " + m.toString());
+        	System.out.println("member.teamClass = " + m.getTeam().getClass());
+        	System.out.println("member.teamName = " + m.getTeam().getName());
+        }
+    }
+    
+    @Test
+    void FetchTypeLAZY_EntityGraph적용_테스트() throws Exception {
+    	
+    	// @BeforeEach 에서 생성한 데이터의 1차 캐싱 제거
+        em.flush();
+        em.clear();
+        
+        // fetch join 을 통해 모든 데이터를 한번에 조회
+        List<Member> members = memberRepository.findFetchAll();
+        
+        for(Member m : members) {
+        	System.out.println("member = " + m.toString());
+        	System.out.println("member.teamClass = " + m.getTeam().getClass());
+        	System.out.println("member.teamName = " + m.getTeam().getName());
+        }
     }
 }
