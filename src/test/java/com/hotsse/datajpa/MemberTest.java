@@ -39,6 +39,7 @@ public class MemberTest {
     @Autowired
     private TeamJpaRepository teamJpaRepository;
     
+    // 각 JPA Repository를 포함한 모든 Bean 에서 호출한 @PersistenceContext EntityManager 는 같은 인스턴스이다
     @PersistenceContext
 	private EntityManager em;
     
